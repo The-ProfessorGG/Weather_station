@@ -48,7 +48,8 @@ String extractJsonValue(String json, String key) {
 
   int startIndex = colonIndex + 1;
 
-  while (startIndex < json.length() && (json[startIndex] == ' ' || json[startIndex] == '\"')) {
+  while (startIndex < json.length() &&
+         (json[startIndex] == ' ' || json[startIndex] == '\"')) {
     startIndex++;
   }
 
@@ -83,7 +84,8 @@ bool fetchAPIWeather() {
                "&appid=" + String(apiKey) +
                "&units=metric";
 
-  Serial.println("Fetching API weather...");
+  Serial.println("========== API REQUEST ==========");
+  Serial.println("URL:");
   Serial.println(url);
 
   http.begin(client, url);
@@ -92,29 +94,48 @@ bool fetchAPIWeather() {
   Serial.print("HTTP code: ");
   Serial.println(httpCode);
 
-  String payload = http.getString();
-  Serial.println("Payload:");
-  Serial.println(payload);
+  if (httpCode > 0) {
+    String payload = http.getString();
 
-  if (httpCode == 200) {
-    apiTemp = extractJsonValue(payload, "\"temp\"");
-    apiHumidity = extractJsonValue(payload, "\"humidity\"");
-    apiPressure = extractJsonValue(payload, "\"pressure\"");
-    apiCondition = extractJsonValue(payload, "\"description\"");
+    Serial.println("Payload:");
+    Serial.println(payload);
 
-    if (apiTemp == "--" || apiHumidity == "--" || apiPressure == "--") {
-      apiCondition = "Parse fail";
+    if (httpCode == 200) {
+      apiTemp = extractJsonValue(payload, "\"temp\"");
+      apiHumidity = extractJsonValue(payload, "\"humidity\"");
+      apiPressure = extractJsonValue(payload, "\"pressure\"");
+      apiCondition = extractJsonValue(payload, "\"description\"");
+
+      if (apiTemp == "--" || apiHumidity == "--" || apiPressure == "--") {
+        Serial.println("Parse failed");
+        apiTemp = "--";
+        apiHumidity = "--";
+        apiPressure = "--";
+        apiCondition = "Parse fail";
+        http.end();
+        return false;
+      }
+
+      http.end();
+      return true;
+    } else {
+      Serial.println("API returned error code (not 200)");
+      apiTemp = "--";
+      apiHumidity = "--";
+      apiPressure = "--";
+      apiCondition = "API fail";
       http.end();
       return false;
     }
-
-    http.end();
-    return true;
   } else {
+    Serial.print("HTTP error: ");
+    Serial.println(http.errorToString(httpCode));
+
     apiTemp = "--";
     apiHumidity = "--";
     apiPressure = "--";
-    apiCondition = "API fail";
+    apiCondition = "Conn fail";
+
     http.end();
     return false;
   }
@@ -130,8 +151,6 @@ void drawCountdown() {
 
   display.setTextSize(1);
   display.setTextColor(WHITE);
-
-  // top right corner
   display.setCursor(110, 0);
   display.print(remaining);
   display.print("s");
@@ -209,7 +228,7 @@ void setup() {
 
   if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
     Serial.println("OLED failed");
-    for (;;);
+    for (;;) {}
   }
 
   if (!bmp.begin()) {
@@ -217,7 +236,7 @@ void setup() {
     display.setCursor(0, 10);
     display.println("BMP180 failed");
     display.display();
-    while (1);
+    while (1) {}
   }
 
   lightMeter.begin();
@@ -241,7 +260,7 @@ void setup() {
   Serial.println("WiFi connected!");
   Serial.println(WiFi.localIP());
 
-  fetchAPIWeather(); // get first API reading at startup
+  fetchAPIWeather();
   lastSwitchTime = millis();
 }
 
