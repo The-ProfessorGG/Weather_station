@@ -70,7 +70,7 @@ Create a `secrets.h` file in the same folder as the `.ino` file:
 
 Get a free API key at [openweathermap.org/api_keys](https://home.openweathermap.org/api_keys).
 
-The city and country are set in the main sketch:
+The city and country are set in the main sketch: (set this to what you would like to pull from the API; have a look at OpenWeatherMap to see what cities and country codes they have)
 
 ```cpp
 const char* city        = "Ballito";
